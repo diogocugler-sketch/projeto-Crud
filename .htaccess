@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# 1. Bloqueia o acesso direto às pastas estruturais na raiz
+RewriteRule ^(app|config|views) - [F,L]
+
+# 2. Evita o loop (Ajustado com o nome correto da pasta do seu projeto)
+RewriteCond %{REQUEST_URI} !^/projeto-Crud/public/ [NC]
+RewriteRule ^(.*)$ public/$1 [L]
