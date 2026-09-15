@@ -24,10 +24,18 @@ class PedidoModel {
             ':tipo' => $tipo
         ]);
     }
-    public function editar($id, $nome, $email, $telefone, $tipo) {
+    public function deletar($id) {
+    $sql = "DELETE FROM usuarios WHERE id_usu = :id";
+    $stmt = $this->db->prepare($sql);
+
+    return $stmt->execute([
+        ':id' => $id
+    ]);
+}
+public function editar($id, $nome, $email, $telefone, $tipo) {
     $sql = "UPDATE usuarios 
             SET nome_usu = :nome_usu, email = :email, telefone = :telefone, tipo = :tipo 
-            WHERE id = :id";
+            WHERE id_usu = :id";
     $stmt = $this->db->prepare($sql);
 
     return $stmt->execute([

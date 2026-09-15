@@ -1,30 +1,57 @@
 <?php 
 require_once '../config/conexao.php';
+require_once '../app/models/UsuarioModel.php';
+$usuarioModel = new PedidoModel($conexao);
 
-// --- LOGICA 1: SALVAR NO BANCO DE DADOS (Quando clicar no botão) ---
+// --- LOGICA 1: SALVAR NO BANCO DE DADOS (cadastrar OU editar) ---
 $erro_cadastro = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrar'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
     $nome = $_POST['nome_usu'];
     $email = $_POST['email'];
     $telefone = $_POST['telefone'];
     $tipo = $_POST['tipo'];
+    $id = $_GET['id_usu'] ?? null;
 
     try {
-        // Prepara o comando SQL para evitar ataques de SQL Injection
-        $stmt = $conexao->prepare("INSERT INTO usuarios (nome_usu, email, telefone, tipo) VALUES (:nome, :email, :telefone, :tipo)");
-        $stmt->execute([
-            ':nome' => $nome,
-            ':email' => $email,
-            ':telefone' => $telefone,
-            ':tipo' => $tipo
-        ]);
-        
-        // Atualiza a página para limpar o formulário e mostrar o novo registro
+        if (!empty($id)) {
+            // Veio id_usu na URL -> é uma edição
+            $usuarioModel->editar($id, $nome, $email, $telefone, $tipo);
+        } else {
+            // Sem id_usu -> é um cadastro novo
+            $stmt = $conexao->prepare("INSERT INTO usuarios (nome_usu, email, telefone, tipo) VALUES (:nome, :email, :telefone, :tipo)");
+            $stmt->execute([
+                ':nome' => $nome,
+                ':email' => $email,
+                ':telefone' => $telefone,
+                ':tipo' => $tipo
+            ]);
+        }
+
+        // Atualiza a página para limpar o formulário e mostrar o registro
         header("Location: index.php");
         exit;
     } catch (PDOException $e) {
         $erro_cadastro = $e->getMessage();
     }
+}
+
+// --- LOGICA 1B: DELETAR DO BANCO DE DADOS (Quando clicar em "Excluir") ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deletar'])) {
+    try {
+        $usuarioModel->deletar($_POST['id_usu']);
+        header("Location: index.php");
+        exit;
+    } catch (PDOException $e) {
+        $erro_cadastro = $e->getMessage();
+    }
+}
+
+// --- LOGICA 1C: se veio ?id_usu= na URL, busca esse usuário pra preencher o formulário ---
+$usuario_editando = null;
+if (isset($_GET['id_usu'])) {
+    $stmt = $conexao->prepare("SELECT * FROM usuarios WHERE id_usu = :id");
+    $stmt->execute([':id' => $_GET['id_usu']]);
+    $usuario_editando = $stmt->fetch();
 }
 
 // --- LOGICA 2: BUSCAR DO BANCO DE DADOS (Para exibir na tabela) ---
@@ -358,6 +385,76 @@ foreach ($pedidos as $item) {
     flex-shrink: 0;
   }
 
+  .th-acoes, .td-acoes { text-align: right; display: table-cell; }
+
+  .td-acoes {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-editar {
+    display: inline-block;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .btn-editar:hover {
+    border-color: var(--focus);
+    color: var(--text);
+  }
+
+  .btn-editar:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .link-cancelar {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+
+  .link-cancelar:hover { color: var(--text); }
+  .link-cancelar:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .btn-excluir {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .btn-excluir:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .btn-excluir:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
   .vazio {
     text-align: center;
     padding: 34px 10px;
@@ -398,49 +495,52 @@ foreach ($pedidos as $item) {
   <div class="painel">
 
     <section>
-      <h2>Novo integrante</h2>
-      <p class="sub">Adicione alguém à operação</p>
+      <h2><?= $usuario_editando ? 'Editar integrante' : 'Novo integrante' ?></h2>
+      <p class="sub"><?= $usuario_editando ? 'Atualize os dados e salve' : 'Adicione alguém à operação' ?></p>
 
       <?php if ($erro_cadastro): ?>
-        <div class="alerta-erro">Não foi possível cadastrar: <?= htmlspecialchars($erro_cadastro) ?></div>
+        <div class="alerta-erro">Não foi possível salvar: <?= htmlspecialchars($erro_cadastro) ?></div>
       <?php endif; ?>
 
-      <form method="POST" action="index.php">
+      <form method="POST" action="index.php?id_usu=<?= htmlspecialchars($usuario_editando['id_usu'] ?? '') ?>">
         <div class="campo">
           <label for="nome_usu">Nome</label>
-          <input type="text" id="nome_usu" name="nome_usu" placeholder="Ex: Roberto" required>
+          <input type="text" id="nome_usu" name="nome_usu" placeholder="Ex: Roberto" value="<?= htmlspecialchars($usuario_editando['nome_usu'] ?? '') ?>" required>
         </div>
         <div class="campo">
           <label for="email">E-mail</label>
-          <input type="email" id="email" name="email" placeholder="Ex: roberto@email.com" required>
+          <input type="email" id="email" name="email" placeholder="Ex: roberto@email.com" value="<?= htmlspecialchars($usuario_editando['email'] ?? '') ?>" required>
         </div>
         <div class="campo">
           <label for="telefone">Telefone</label>
-          <input type="text" id="telefone" name="telefone" placeholder="(12) 99999-9999" required>
+          <input type="text" id="telefone" name="telefone" placeholder="(12) 99999-9999" value="<?= htmlspecialchars($usuario_editando['telefone'] ?? '') ?>" required>
         </div>
 
         <fieldset>
           <legend>Função na operação</legend>
           <div class="funcoes">
             <label class="funcao-opcao" data-tipo="1">
-              <input type="radio" name="tipo" value="1" checked>
+              <input type="radio" name="tipo" value="1" <?= (!$usuario_editando || $usuario_editando['tipo'] == 1) ? 'checked' : '' ?>>
               <span class="funcao-ponto" style="background:var(--cliente)"></span>
               <span>Cliente</span>
             </label>
             <label class="funcao-opcao" data-tipo="2">
-              <input type="radio" name="tipo" value="2">
+              <input type="radio" name="tipo" value="2" <?= ($usuario_editando && $usuario_editando['tipo'] == 2) ? 'checked' : '' ?>>
               <span class="funcao-ponto" style="background:var(--admin)"></span>
               <span>Admin</span>
             </label>
             <label class="funcao-opcao" data-tipo="3">
-              <input type="radio" name="tipo" value="3">
+              <input type="radio" name="tipo" value="3" <?= ($usuario_editando && $usuario_editando['tipo'] == 3) ? 'checked' : '' ?>>
               <span class="funcao-ponto" style="background:var(--entregador)"></span>
               <span>Entregador</span>
             </label>
           </div>
         </fieldset>
 
-        <button type="submit" name="cadastrar" class="botao-salvar">Salvar usuário</button>
+        <button type="submit" name="salvar" class="botao-salvar"><?= $usuario_editando ? 'Salvar alterações' : 'Salvar usuário' ?></button>
+        <?php if ($usuario_editando): ?>
+          <a href="index.php" class="link-cancelar">Cancelar edição</a>
+        <?php endif; ?>
       </form>
     </section>
 
@@ -456,6 +556,7 @@ foreach ($pedidos as $item) {
             <th>Nome</th>
             <th>Contato</th>
             <th>Função</th>
+            <th class="th-acoes"></th>
           </tr>
         </thead>
         <tbody>
@@ -479,11 +580,18 @@ foreach ($pedidos as $item) {
                     <?= $rotulo ?>
                   </span>
                 </td>
+                <td class="td-acoes">
+                  <a href="index.php?id_usu=<?= htmlspecialchars($item['id_usu']) ?>" class="btn-editar">Editar</a>
+                  <form method="POST" action="index.php" onsubmit="return confirm('Tem certeza que deseja excluir?');">
+                    <input type="hidden" name="id_usu" value="<?= htmlspecialchars($item['id_usu']) ?>">
+                    <button type="submit" name="deletar" class="btn-excluir">Excluir</button>
+                  </form>
+                </td>
               </tr>
             <?php endforeach; ?>
           <?php else: ?>
             <tr>
-              <td colspan="3" class="vazio">Nenhum integrante cadastrado ainda. Use o formulário ao lado para adicionar o primeiro.</td>
+              <td colspan="4" class="vazio">Nenhum integrante cadastrado ainda. Use o formulário ao lado para adicionar o primeiro.</td>
             </tr>
           <?php endif; ?>
         </tbody>
@@ -492,6 +600,16 @@ foreach ($pedidos as $item) {
 
   </div>
 </div>
+ <footer id="rodape" style="font-size: 10px; text-align: center;font-family: fantasy;">
+<p><small>&copy; 2026. direitos reservados a empresa growhtttt</small></p>
+<nav>
+<ul>
+<li><a href="https://pranx.com/maze/">Política de Privacidade</a></li>
+<li><a href="https://pranx.com/maze/">Termos de Uso</a></li>
+<li><a href="https://pranx.com/maze/">contrato com o governo</a></li>
+</ul>
+</nav>
+</footer>
 
 </body>
-</html>     
+</html>
