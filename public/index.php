@@ -105,8 +105,8 @@ foreach ($pedidos as $item) {
     margin: 0;
     background: var(--bg);
     background-image:
-      radial-gradient(circle at 12% 8%, rgba(85, 198, 255, 0.06), transparent 40%),
-      radial-gradient(circle at 88% 92%, rgba(255, 138, 82, 0.06), transparent 40%);
+      radial-gradient(circle at 12% 8%, rgb(166, 181, 189), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgb(190, 176, 170), transparent 40%);
     color: var(--text);
     font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
     line-height: 1.5;
