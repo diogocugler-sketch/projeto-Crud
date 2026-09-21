@@ -4,7 +4,7 @@ require_once '../app/models/UsuarioModel.php';
 $usuarioModel = new PedidoModel($conexao);
 
 // --- LOGICA 1: SALVAR NO BANCO DE DADOS (cadastrar OU editar) ---
-$erro_cadastro = null;
+$erro = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
     $nome = $_POST['nome_usu'];
     $email = $_POST['email'];
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar'])) {
         header("Location: index.php");
         exit;
     } catch (PDOException $e) {
-        $erro_cadastro = $e->getMessage();
+        $erro = $e->getMessage();
     }
 }
 
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deletar'])) {
         header("Location: index.php");
         exit;
     } catch (PDOException $e) {
-        $erro_cadastro = $e->getMessage();
+        $erro = $e->getMessage();
     }
 }
 
@@ -78,9 +78,6 @@ foreach ($pedidos as $item) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rota Certa · Equipe da operação</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f1b2a;
@@ -105,8 +102,8 @@ foreach ($pedidos as $item) {
     margin: 0;
     background: var(--bg);
     background-image:
-      radial-gradient(circle at 12% 8%, rgb(166, 181, 189), transparent 40%),
-      radial-gradient(circle at 88% 92%, rgb(190, 176, 170), transparent 40%);
+      radial-gradient(circle at 12% 8%, rgba(85, 198, 255, 0.06), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(255, 138, 82, 0.06), transparent 40%);
     color: var(--text);
     font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
     line-height: 1.5;
@@ -385,7 +382,7 @@ foreach ($pedidos as $item) {
     flex-shrink: 0;
   }
 
-  .th-acoes, .td-acoes { text-align: right; display: table-cell; }
+  .th-acoes, .td-acoes { text-align: right; }
 
   .td-acoes {
     display: flex;
@@ -498,8 +495,8 @@ foreach ($pedidos as $item) {
       <h2><?= $usuario_editando ? 'Editar integrante' : 'Novo integrante' ?></h2>
       <p class="sub"><?= $usuario_editando ? 'Atualize os dados e salve' : 'Adicione alguém à operação' ?></p>
 
-      <?php if ($erro_cadastro): ?>
-        <div class="alerta-erro">Não foi possível salvar: <?= htmlspecialchars($erro_cadastro) ?></div>
+      <?php if ($erro): ?>
+        <div class="alerta-erro">Não foi possível salvar: <?= htmlspecialchars($erro) ?></div>
       <?php endif; ?>
 
       <form method="POST" action="index.php?id_usu=<?= htmlspecialchars($usuario_editando['id_usu'] ?? '') ?>">
@@ -516,8 +513,8 @@ foreach ($pedidos as $item) {
           <input type="text" id="telefone" name="telefone" placeholder="(12) 99999-9999" value="<?= htmlspecialchars($usuario_editando['telefone'] ?? '') ?>" required>
         </div>
 
-        <fieldset>
-          <legend>Função na operação</legend>
+        
+          <h3>Função na operação</h3>
           <div class="funcoes">
             <label class="funcao-opcao" data-tipo="1">
               <input type="radio" name="tipo" value="1" <?= (!$usuario_editando || $usuario_editando['tipo'] == 1) ? 'checked' : '' ?>>
@@ -535,8 +532,7 @@ foreach ($pedidos as $item) {
               <span>Entregador</span>
             </label>
           </div>
-        </fieldset>
-
+<br>
         <button type="submit" name="salvar" class="botao-salvar"><?= $usuario_editando ? 'Salvar alterações' : 'Salvar usuário' ?></button>
         <?php if ($usuario_editando): ?>
           <a href="index.php" class="link-cancelar">Cancelar edição</a>
@@ -546,7 +542,7 @@ foreach ($pedidos as $item) {
 
     <section>
       <div class="lista-cabeca">
-        <h2 style="margin:0">Equipe cadastrada</h2>
+        <h2>Equipe cadastrada</h2>
         <span class="contagem-total"><?= count($pedidos) ?> ao todo</span>
       </div>
 
@@ -560,47 +556,46 @@ foreach ($pedidos as $item) {
           </tr>
         </thead>
         <tbody>
-          <?php if (!empty($pedidos)): ?>
-            <?php foreach ($pedidos as $item): ?>
-              <?php
-                $cor_var = 'var(--cliente)';
-                $rotulo = 'Cliente';
-                if ($item['tipo'] == 2) { $cor_var = 'var(--admin)'; $rotulo = 'Admin'; }
-                elseif ($item['tipo'] == 3) { $cor_var = 'var(--entregador)'; $rotulo = 'Entregador'; }
-              ?>
-              <tr class="linha-funcao" data-tipo="<?= htmlspecialchars($item['tipo']) ?>">
-                <td><?= htmlspecialchars($item['nome_usu']) ?></td>
-                <td class="contato mono">
-                  <?= htmlspecialchars($item['email']) ?><br>
-                  <?= htmlspecialchars($item['telefone']) ?>
-                </td>
-                <td>
-                  <span class="tag-funcao">
-                    <span class="tag-ponto" style="background:<?= $cor_var ?>"></span>
-                    <?= $rotulo ?>
-                  </span>
-                </td>
-                <td class="td-acoes">
-                  <a href="index.php?id_usu=<?= htmlspecialchars($item['id_usu']) ?>" class="btn-editar">Editar</a>
-                  <form method="POST" action="index.php" onsubmit="return confirm('Tem certeza que deseja excluir?');">
-                    <input type="hidden" name="id_usu" value="<?= htmlspecialchars($item['id_usu']) ?>">
-                    <button type="submit" name="deletar" class="btn-excluir">Excluir</button>
-                  </form>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <tr>
-              <td colspan="4" class="vazio">Nenhum integrante cadastrado ainda. Use o formulário ao lado para adicionar o primeiro.</td>
-            </tr>
-          <?php endif; ?>
+          <?php if (!empty($pedidos)):
+  foreach ($pedidos as $item):
+    $cor_var = 'var(--cliente)';
+    $rotulo = 'Cliente';
+    if ($item['tipo'] == 2) { $cor_var = 'var(--admin)'; $rotulo = 'Admin'; }
+    elseif ($item['tipo'] == 3) { $cor_var = 'var(--entregador)'; $rotulo = 'Entregador'; }
+?>
+  <tr class="linha-funcao" data-tipo="<?= htmlspecialchars($item['tipo']) ?>">
+    <td><?= htmlspecialchars($item['nome_usu']) ?></td>
+    <td class="contato mono">
+      <?= htmlspecialchars($item['email']) ?><br>
+      <?= htmlspecialchars($item['telefone']) ?>
+    </td>
+    <td>
+      <span class="tag-funcao">
+        <span class="tag-ponto" style="background:<?= $cor_var ?>"></span>
+        <?= $rotulo ?>
+      </span>
+    </td>
+    <td class="td-acoes">
+      <a href="index.php?id_usu=<?= htmlspecialchars($item['id_usu']) ?>" class="btn-editar">Editar</a>
+      <form method="POST" action="index.php" onsubmit="return confirm('Tem certeza que deseja excluir?');">
+        <input type="hidden" name="id_usu" value="<?= htmlspecialchars($item['id_usu']) ?>">
+        <button type="submit" name="deletar" class="btn-excluir">Excluir</button>
+      </form>
+    </td>
+  </tr>
+  <?php endforeach; 
+    else: ?>
+  <tr>
+    <td colspan="4" class="vazio">Nenhum integrante cadastrado ainda. Use o formulário ao lado para adicionar o primeiro.</td>
+  </tr>
+<?php endif; ?>
         </tbody>
       </table>
     </section>
 
   </div>
 </div>
- <footer id="rodape" style="font-size: 10px; text-align: center;font-family: fantasy;">
+<footer id="rodape" style="font-size: 10px; text-align: center;font-family: fantasy;">
 <p><small>&copy; 2026. direitos reservados a empresa growhtttt</small></p>
 <nav>
 <ul>
@@ -610,6 +605,5 @@ foreach ($pedidos as $item) {
 </ul>
 </nav>
 </footer>
-
 </body>
 </html>

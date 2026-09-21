@@ -1,7 +1,3 @@
 <html>
-<!-- aqui vai ficar todo o html da pagina para visualizacao do usuario ne pae -->   
-
-
-
-
+<!-- talvez nao siga 100% o mvc professor tmj e nois😊 -->   
 </html>
