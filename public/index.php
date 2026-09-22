@@ -45,8 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deletar'])) {
         $erro = $e->getMessage();
     }
 }
-
-// --- LOGICA 1C: se veio ?id_usu= na URL, busca esse usuário pra preencher o formulário ---
+    
 $usuario_editando = null;
 if (isset($_GET['id_usu'])) {
     $stmt = $conexao->prepare("SELECT * FROM usuarios WHERE id_usu = :id");
@@ -54,7 +53,7 @@ if (isset($_GET['id_usu'])) {
     $usuario_editando = $stmt->fetch();
 }
 
-// --- LOGICA 2: BUSCAR DO BANCO DE DADOS (Para exibir na tabela) ---
+
 try {
     $stmt = $conexao->query("SELECT * FROM usuarios");
     $pedidos = $stmt->fetchAll();
@@ -62,7 +61,7 @@ try {
     $pedidos = [];
 }
 
-// --- LOGICA 3: CONTAGENS PARA A BARRA DE STATUS ---
+ 
 $total_clientes = 0;
 $total_admins = 0;
 $total_entregadores = 0;
@@ -117,7 +116,6 @@ foreach ($pedidos as $item) {
     margin: 0 auto;
   }
 
-  /* ---------- Cabeçalho / hero ---------- */
   .topo {
     display: flex;
     flex-wrap: wrap;
@@ -171,7 +169,6 @@ foreach ($pedidos as $item) {
     font-size: 0.82rem;
   }
 
-  /* ---------- Layout principal ---------- */
   .painel {
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -202,7 +199,6 @@ foreach ($pedidos as $item) {
     margin: 0 0 18px;
   }
 
-  /* ---------- Formulário ---------- */
   .campo {
     display: flex;
     flex-direction: column;
@@ -321,8 +317,6 @@ foreach ($pedidos as $item) {
     font-size: 0.85rem;
     margin-bottom: 16px;
   }
-
-  /* ---------- Tabela / manifesto ---------- */
   .lista-cabeca {
     display: flex;
     justify-content: space-between;
